@@ -5,6 +5,8 @@ export const fetchCache = 'force-no-store';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { adminSourceSchema } from '@/lib/validation';
+import { getClientIp, isRateLimited } from '@/lib/rateLimit';
 
 export async function GET() {
     try {
@@ -53,7 +55,19 @@ export async function POST(req: Request) {
             return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
         }
 
-        const { id, country, name, category, url, active } = await req.json();
+        const ip = getClientIp(req);
+        const rate = isRateLimited(`admin-sources-post:${ip}`, 20, 10 * 60 * 1000);
+        if (rate.limited) {
+            return NextResponse.json({ message: 'Too many write operations. Try again later.' }, { status: 429 });
+        }
+
+        const body = await req.json();
+        const parsed = adminSourceSchema.safeParse(body);
+        if (!parsed.success) {
+            return NextResponse.json({ message: 'Invalid input', errors: parsed.error.flatten() }, { status: 400 });
+        }
+
+        const { id, country, name, category, url, active } = parsed.data;
 
         if (id) {
             const updated = await prisma.newsSource.update({
@@ -80,7 +94,17 @@ export async function DELETE(req: Request) {
             return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
         }
 
+        const ip = getClientIp(req);
+        const rate = isRateLimited(`admin-sources-delete:${ip}`, 20, 10 * 60 * 1000);
+        if (rate.limited) {
+            return NextResponse.json({ message: 'Too many delete operations. Try again later.' }, { status: 429 });
+        }
+
         const { id } = await req.json();
+        if (!id || typeof id !== 'string') {
+            return NextResponse.json({ message: 'Invalid source id' }, { status: 400 });
+        }
+
         await prisma.newsSource.delete({
             where: { id }
         });

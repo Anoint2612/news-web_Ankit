@@ -27,47 +27,6 @@ export const authOptions: NextAuthOptions = {
                     throw new Error("Invalid credentials");
                 }
 
-                // Check for Admin Override from .env
-                const adminEmail = process.env.ADMIN_EMAIL;
-                const adminPassword = process.env.ADMIN_PASSWORD;
-
-                if (adminEmail && adminPassword &&
-                    credentials.email === adminEmail &&
-                    credentials.password === adminPassword) {
-
-                    // Upsert admin user in DB
-                    let adminUser = await prisma.user.findUnique({
-                        where: { email: adminEmail }
-                    });
-
-                    if (!adminUser) {
-                        const { hash } = await import('bcryptjs');
-                        const hashedPassword = await hash(adminPassword, 12);
-                        adminUser = await prisma.user.create({
-                            data: {
-                                email: adminEmail,
-                                password: hashedPassword,
-                                role: 'ADMIN',
-                                name: 'System Admin',
-                                emailVerified: new Date(),
-                            }
-                        });
-                    } else if (adminUser.role !== 'ADMIN') {
-                        adminUser = await prisma.user.update({
-                            where: { email: adminEmail },
-                            data: { role: 'ADMIN', emailVerified: new Date() }
-                        });
-                    }
-
-                    return {
-                        id: adminUser.id,
-                        email: adminUser.email,
-                        name: adminUser.name,
-                        image: adminUser.image,
-                        role: adminUser.role,
-                    }
-                }
-
                 const user = await prisma.user.findUnique({
                     where: { email: credentials.email }
                 })

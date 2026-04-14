@@ -1,14 +1,25 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { prisma } from '@/lib/prisma';
+import { verifyOtpSchema } from '@/lib/validation';
+import { getClientIp, isRateLimited } from '@/lib/rateLimit';
 
 export async function POST(req: Request) {
     try {
-        const { email, otp } = await req.json();
-
-        if (!email || !otp) {
-            return NextResponse.json({ message: 'Missing fields' }, { status: 400 });
+        const ip = getClientIp(req);
+        const rate = isRateLimited(`verify-otp:${ip}`, 10, 15 * 60 * 1000);
+        if (rate.limited) {
+            return NextResponse.json({ message: 'Too many verification attempts. Try again later.' }, { status: 429 });
         }
+
+        const body = await req.json();
+        const parsed = verifyOtpSchema.safeParse(body);
+
+        if (!parsed.success) {
+            return NextResponse.json({ message: 'Invalid input', errors: parsed.error.flatten() }, { status: 400 });
+        }
+
+        const { email, otp } = parsed.data;
 
         const user = await prisma.user.findUnique({
             where: { email },

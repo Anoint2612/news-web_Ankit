@@ -1,28 +1,35 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import bcrypt from 'bcryptjs';
+import { randomInt } from 'node:crypto';
 import { prisma } from '@/lib/prisma';
 import { sendOTPEmail } from '@/lib/mail';
+import { signupSchema } from '@/lib/validation';
+import { getClientIp, isRateLimited } from '@/lib/rateLimit';
 
 export async function POST(req: Request) {
     try {
-        const { email, password } = await req.json();
-
-        if (!email || !password) {
-            return NextResponse.json({ message: 'Missing fields' }, { status: 400 });
+        const ip = getClientIp(req);
+        const rate = isRateLimited(`signup:${ip}`, 8, 15 * 60 * 1000);
+        if (rate.limited) {
+            return NextResponse.json({ message: 'Too many signup attempts. Try again later.' }, { status: 429 });
         }
 
-        // Block signup for reserved Admin email
-        if (email === process.env.ADMIN_EMAIL) {
-            return NextResponse.json({ message: 'This email is reserved' }, { status: 403 });
+        const body = await req.json();
+        const parsed = signupSchema.safeParse(body);
+
+        if (!parsed.success) {
+            return NextResponse.json({ message: 'Invalid input', errors: parsed.error.flatten() }, { status: 400 });
         }
+
+        const { email, password } = parsed.data;
 
         const existingUser = await prisma.user.findUnique({
             where: { email },
         });
 
         const hashedPassword = await bcrypt.hash(password, 12);
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const otp = randomInt(100000, 1000000).toString();
         const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
         if (existingUser) {
