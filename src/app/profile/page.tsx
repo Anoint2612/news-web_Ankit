@@ -6,6 +6,18 @@ import { useEffect, useState } from 'react';
 import { Loader2, Camera, Shield, Save, X } from 'lucide-react';
 import styles from './Profile.module.css';
 
+function getDisplayImageUrl(rawUrl?: string | null) {
+    if (!rawUrl) return '';
+    const trimmed = rawUrl.trim();
+    const unsplashUrlMatch = trimmed.match(/^https?:\/\/(?:www\.)?unsplash\.com\/photos\/([^/?#]+)\/?(?:\?.*)?$/i);
+    if (unsplashUrlMatch?.[1]) {
+        const photoSegment = unsplashUrlMatch[1];
+        const photoId = photoSegment.includes('-') ? photoSegment.split('-').pop() : photoSegment;
+        if (photoId) return `https://unsplash.com/photos/${photoId}/download?force=true&w=400`;
+    }
+    return trimmed;
+}
+
 export default function ProfilePage() {
     const { data: session, status, update } = useSession();
     const router = useRouter();
@@ -13,6 +25,7 @@ export default function ProfilePage() {
     const [isEditing, setIsEditing] = useState(false);
     const [name, setName] = useState('');
     const [image, setImage] = useState('');
+    const [imageLoadError, setImageLoadError] = useState(false);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
 
@@ -23,11 +36,11 @@ export default function ProfilePage() {
         if (session?.user) {
             setName(session.user.name || '');
             setImage(session.user.image || '');
+            setImageLoadError(false);
         }
     }, [status, router, session]);
 
-    const handleUpdate = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleUpdate = async () => {
         setLoading(true);
         setMessage({ type: '', text: '' });
 
@@ -43,7 +56,7 @@ export default function ProfilePage() {
             if (!res.ok) throw new Error(data.message || 'Update failed');
 
             // Refresh session data
-            await update({ name, image });
+            await update({ name: data.user?.name ?? name, image: data.user?.image ?? image });
 
             setMessage({ type: 'success', text: 'Profile updated successfully!' });
             setIsEditing(false);
@@ -74,13 +87,20 @@ export default function ProfilePage() {
                                     placeholder="Image URL"
                                     className={styles.urlInput}
                                     value={image}
-                                    onChange={(e) => setImage(e.target.value)}
+                                    onChange={(e) => {
+                                        setImage(e.target.value);
+                                        setImageLoadError(false);
+                                    }}
                                 />
                                 <Camera size={20} />
                             </div>
                         ) : (
-                            session.user?.image ? (
-                                <img src={session.user.image} alt="Profile" />
+                            getDisplayImageUrl(session.user?.image) && !imageLoadError ? (
+                                <img
+                                    src={getDisplayImageUrl(session.user?.image)}
+                                    alt="Profile"
+                                    onError={() => setImageLoadError(true)}
+                                />
                             ) : (
                                 <span>{session.user?.name?.[0] || 'U'}</span>
                             )

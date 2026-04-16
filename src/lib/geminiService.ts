@@ -13,13 +13,13 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 // Comprehensive list of models to try, from newest to most stable
 const GEMINI_MODELS = [
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
   'gemini-1.5-flash',
   'gemini-1.5-flash-latest',
-  'gemini-2.0-flash-exp',
   'gemini-1.5-pro',
   'gemini-1.5-flash-8b',
-  'gemini-pro',
-  'gemini-1.0-pro'
+  'gemini-pro'
 ];
 
 /**

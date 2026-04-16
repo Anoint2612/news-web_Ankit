@@ -13,6 +13,7 @@ export interface RSSFeedItem {
     type?: string;
     length?: string;
   };
+  sourceName?: string;
 }
 
 export interface RSSFeed {

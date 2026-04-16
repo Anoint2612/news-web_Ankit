@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 
 export default function AnalyticsTracker() {
     const pathname = usePathname();
-    const startTimeRef = useRef<number>(Date.now());
+    const startTimeRef = useRef<number>(0);
 
     useEffect(() => {
         startTimeRef.current = Date.now();

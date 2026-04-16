@@ -4,6 +4,26 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
+function normalizeImageUrl(rawUrl: string | null | undefined) {
+    if (!rawUrl) return undefined;
+    const trimmed = rawUrl.trim();
+    if (!trimmed) return undefined;
+
+    const unsplashUrlMatch = trimmed.match(/^https?:\/\/(?:www\.)?unsplash\.com\/photos\/([^/?#]+)\/?(?:\?.*)?$/i);
+    if (unsplashUrlMatch?.[1]) {
+        const photoSegment = unsplashUrlMatch[1];
+        const photoId = photoSegment.includes('-')
+            ? photoSegment.split('-').pop()
+            : photoSegment;
+
+        if (photoId) {
+            return `https://unsplash.com/photos/${photoId}/download?force=true&w=400`;
+        }
+    }
+
+    return trimmed;
+}
+
 export async function POST(req: Request) {
     try {
         const session = await getServerSession(authOptions);
@@ -14,11 +34,13 @@ export async function POST(req: Request) {
 
         const { name, image } = await req.json();
 
+        const normalizedImage = normalizeImageUrl(image);
+
         const updatedUser = await prisma.user.update({
             where: { email: session.user.email },
             data: {
-                name: name || undefined,
-                image: image || undefined,
+                name: name?.trim() || undefined,
+                image: normalizedImage,
             },
         });
 
