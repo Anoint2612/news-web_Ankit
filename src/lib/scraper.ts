@@ -19,7 +19,7 @@ async function extractWithGemini(html: string, url: string): Promise<Partial<Scr
     if (!process.env.GEMINI_API_KEY) return null;
 
     // Use a simpler fallback if Gemini is also being problematic
-    const models = ['gemini-1.5-flash', 'gemini-2.0-flash-exp', 'gemini-pro'];
+    const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-pro'];
 
     for (const modelName of models) {
         try {

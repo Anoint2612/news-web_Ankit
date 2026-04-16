@@ -24,53 +24,121 @@ const parser = new Parser({
   },
 });
 
+function cleanFeedTitle(title?: string): string {
+  if (!title) return '';
+  return title
+    .replace(/\|\s*RSS.*$/i, '')
+    .replace(/RSS\s*Feed/gi, '')
+    .replace(/\s*-\s*Top Stories.*$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function hostnameToSourceName(hostname: string): string {
+  const host = hostname.replace(/^www\./, '').toLowerCase();
+  if (host.includes('thehindu')) return 'The Hindu';
+  if (host.includes('indiatimes')) return 'Times of India';
+  if (host.includes('indianexpress')) return 'Indian Express';
+  if (host.includes('hindustantimes')) return 'Hindustan Times';
+  if (host.includes('ndtv')) return 'NDTV';
+  if (host.includes('news18')) return 'News18';
+  if (host.includes('theprint')) return 'The Print';
+  if (host.includes('telegraphindia')) return 'The Telegraph';
+  if (host.includes('deccanherald')) return 'Deccan Herald';
+  if (host.includes('livemint')) return 'Mint';
+  if (host.includes('economictimes')) return 'The Economic Times';
+  if (host.includes('bbc')) return 'BBC';
+  if (host.includes('reuters')) return 'Reuters';
+  if (host.includes('aljazeera')) return 'Al Jazeera';
+  if (host.includes('cnn')) return 'CNN';
+  return host.split('.').filter(Boolean)[0]?.toUpperCase() || 'News Source';
+}
+
+function extractSourceName(feedTitle?: string, feedUrl?: string, articleUrl?: string): string {
+  const cleanedTitle = cleanFeedTitle(feedTitle);
+  if (cleanedTitle) return cleanedTitle;
+
+  const candidateUrls = [articleUrl, feedUrl].filter(Boolean) as string[];
+  for (const url of candidateUrls) {
+    try {
+      const hostname = new URL(url).hostname;
+      return hostnameToSourceName(hostname);
+    } catch {
+      continue;
+    }
+  }
+
+  return 'News Source';
+}
+
 /**
  * Extract image URL from RSS feed item
  */
+function normalizeImageUrl(url?: string): string | undefined {
+  if (!url) return undefined;
+  const trimmed = url.trim();
+  if (!trimmed) return undefined;
+  if (trimmed.startsWith('//')) return `https:${trimmed}`;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return undefined;
+}
+
+function extractImageFromHtml(html?: string): string | undefined {
+  if (!html) return undefined;
+
+  const srcMatch = html.match(/<img[^>]+(?:src|data-src)=['"]([^'">]+)['"]/i);
+  const srcsetMatch = html.match(/<img[^>]+srcset=['"]([^'"]+)['"]/i);
+
+  if (srcMatch?.[1]) {
+    const normalized = normalizeImageUrl(srcMatch[1]);
+    if (normalized) return normalized;
+  }
+
+  if (srcsetMatch?.[1]) {
+    const firstSrc = srcsetMatch[1].split(',')[0]?.trim().split(/\s+/)[0];
+    const normalized = normalizeImageUrl(firstSrc);
+    if (normalized) return normalized;
+  }
+
+  return undefined;
+}
+
 function extractImageUrl(item: any): string | undefined {
   // Try The Hindu's media:content format first
-  if (item['media:content']?.$?.url) {
-    return item['media:content'].$.url;
+  if (item['media:content']?.$?.url || item['media:content']?.url) {
+    const normalized = normalizeImageUrl(item['media:content']?.$?.url || item['media:content']?.url);
+    if (normalized) return normalized;
   }
 
   // Try media:content as array
-  if (Array.isArray(item['media:content']) && item['media:content'][0]?.$?.url) {
-    return item['media:content'][0].$.url;
+  if (Array.isArray(item['media:content']) && (item['media:content'][0]?.$?.url || item['media:content'][0]?.url)) {
+    const normalized = normalizeImageUrl(item['media:content'][0]?.$?.url || item['media:content'][0]?.url);
+    if (normalized) return normalized;
   }
 
   // Try enclosure
   if (item.enclosure?.url) {
-    return item.enclosure.url;
+    const normalized = normalizeImageUrl(item.enclosure.url);
+    if (normalized) return normalized;
   }
 
   // Try media:thumbnail
-  if (item['media:thumbnail']?.$?.url) {
-    return item['media:thumbnail'].$.url;
+  if (item['media:thumbnail']?.$?.url || item['media:thumbnail']?.url) {
+    const normalized = normalizeImageUrl(item['media:thumbnail']?.$?.url || item['media:thumbnail']?.url);
+    if (normalized) return normalized;
   }
 
   // Try content:encoded for images
-  if (item['content:encoded']) {
-    const imgMatch = item['content:encoded'].match(/<img[^>]+src="([^">]+)"/);
-    if (imgMatch && imgMatch[1]) {
-      return imgMatch[1];
-    }
-  }
+  const encodedImage = extractImageFromHtml(item['content:encoded']);
+  if (encodedImage) return encodedImage;
 
   // Try to extract image from description HTML
-  if (item.description) {
-    const imgMatch = item.description.match(/<img[^>]+src="([^">]+)"/);
-    if (imgMatch && imgMatch[1]) {
-      return imgMatch[1];
-    }
-  }
+  const descriptionImage = extractImageFromHtml(item.description);
+  if (descriptionImage) return descriptionImage;
 
   // Try content for images
-  if (item.content) {
-    const imgMatch = item.content.match(/<img[^>]+src="([^">]+)"/);
-    if (imgMatch && imgMatch[1]) {
-      return imgMatch[1];
-    }
-  }
+  const contentImage = extractImageFromHtml(item.content);
+  if (contentImage) return contentImage;
 
   // Return undefined if no image found (will use fallback in components)
   return undefined;
@@ -150,6 +218,8 @@ export async function fetchRSSFeed(category: FeedCategory): Promise<RSSFeed> {
     const feedUrl = RSS_FEEDS[category];
     const feed = await parser.parseURL(feedUrl);
 
+    const feedSourceName = extractSourceName(feed.title, feedUrl);
+
     const rssFeed: RSSFeed = {
       items: feed.items.map((item: any) => {
         // Extract image URL from the item
@@ -166,6 +236,7 @@ export async function fetchRSSFeed(category: FeedCategory): Promise<RSSFeed> {
           categories: item.categories || [],
           isoDate: item.isoDate || '',
           enclosure: imageUrl ? { url: imageUrl } : item.enclosure,
+          sourceName: extractSourceName(feedSourceName, feedUrl, item.link),
         };
       }),
       title: feed.title,
@@ -213,7 +284,7 @@ export function convertToNewsArticles(items: RSSFeedItem[], sourceName?: string)
       image: extractImageUrl(item),
       category: item.categories?.[0] || 'News',
       readTime: calculateReadTime(plainText),
-      sourceName: sourceName,
+      sourceName: item.sourceName || sourceName,
     };
   });
 }
@@ -236,6 +307,46 @@ export async function fetchMultipleFeeds(categories: FeedCategory[]): Promise<Re
 }
 
 const urlCache = new Map<string, { data: RSSFeed; timestamp: number }>();
+const articleImageCache = new Map<string, { image?: string; timestamp: number }>();
+
+async function fetchWithTimeout(url: string, timeoutMs = 6000): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+      },
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function fetchOgImageForArticle(articleUrl: string): Promise<string | undefined> {
+  const cached = articleImageCache.get(articleUrl);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.image;
+  }
+
+  try {
+    const res = await fetchWithTimeout(articleUrl, 7000);
+    if (!res.ok) return undefined;
+    const html = await res.text();
+
+    const ogMatch = html.match(/<meta[^>]+property=['"]og:image['"][^>]+content=['"]([^'"]+)['"][^>]*>/i)
+      || html.match(/<meta[^>]+content=['"]([^'"]+)['"][^>]+property=['"]og:image['"][^>]*>/i);
+    const twitterMatch = html.match(/<meta[^>]+name=['"]twitter:image['"][^>]+content=['"]([^'"]+)['"][^>]*>/i)
+      || html.match(/<meta[^>]+content=['"]([^'"]+)['"][^>]+name=['"]twitter:image['"][^>]*>/i);
+
+    const image = normalizeImageUrl(ogMatch?.[1] || twitterMatch?.[1]);
+    articleImageCache.set(articleUrl, { image, timestamp: Date.now() });
+    return image;
+  } catch {
+    return undefined;
+  }
+}
 
 /**
  * Fetch RSS feed from a specific URL (for multi-tenant feeds)
@@ -249,6 +360,8 @@ export async function fetchRSSFromUrl(url: string): Promise<RSSFeed> {
 
   try {
     const feed = await parser.parseURL(url);
+
+    const feedSourceName = extractSourceName(feed.title, url);
 
     const rssFeed: RSSFeed = {
       items: feed.items.map((item: any) => {
@@ -265,6 +378,7 @@ export async function fetchRSSFromUrl(url: string): Promise<RSSFeed> {
           categories: item.categories || [],
           isoDate: item.isoDate || '',
           enclosure: imageUrl ? { url: imageUrl } : item.enclosure,
+          sourceName: extractSourceName(feedSourceName, url, item.link),
         };
       }),
       title: feed.title,
@@ -326,6 +440,14 @@ export async function fetchCountryFeeds(
     feedUrls = getFeedUrlsForCountry(countryCode, category);
   }
 
+  // Some countries may not define dedicated entertainment feeds yet.
+  // Fallback to general news/homepage feeds so the page never appears empty.
+  if (feedUrls.length === 0 && category === 'entertainment') {
+    const newsFallback = getFeedUrlsForCountry(countryCode, 'news');
+    const homepageFallback = getFeedUrlsForCountry(countryCode, 'homepage');
+    feedUrls = [...newsFallback, ...homepageFallback];
+  }
+
   if (feedUrls.length === 0) {
     console.log(`No feeds found for ${countryCode} - ${category}`);
     return [];
@@ -346,8 +468,20 @@ export async function fetchCountryFeeds(
     return dateB.getTime() - dateA.getTime();
   });
 
+  // Enrich missing images from article metadata (og:image/twitter:image).
+  // We only do this for the first batch to avoid slowing down large feeds.
+  const candidates = allItems.filter((item) => !extractImageUrl(item) && item.link).slice(0, 20);
+  await Promise.all(
+    candidates.map(async (item) => {
+      const ogImage = await fetchOgImageForArticle(item.link);
+      if (ogImage) {
+        item.enclosure = { url: ogImage };
+      }
+    })
+  );
+
   // Convert to NewsArticle format
-  return convertToNewsArticles(allItems, allFeeds[0]?.title);
+  return convertToNewsArticles(allItems);
 }
 
 /**

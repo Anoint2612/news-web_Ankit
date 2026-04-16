@@ -168,7 +168,7 @@ export default async function ArticlePage({ params, searchParams }: PageProps) {
             </div>
           </div>
 
-          {!isAiEnhanced && image && (
+          {image && (
             <div className={styles.imageWrapper}>
               <img src={image} alt={title} className={styles.image} />
             </div>
