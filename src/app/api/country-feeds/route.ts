@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const countryCode = searchParams.get('country') as CountryCode;
-    const category = searchParams.get('category') as 'homepage' | 'news' | 'world' | 'business' | 'sports' | 'technology' | 'entertainment' | 'politics';
+    const category = searchParams.get('category') as 'homepage' | 'news' | 'world' | 'business' | 'sports' | 'technology' | 'entertainment' | 'politics' | 'health';
     const multiple = searchParams.get('multiple');
 
     if (!countryCode) {
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     if (multiple) {
       // Fetch multiple categories
-      const categories = multiple.split(',') as Array<'homepage' | 'news' | 'world' | 'business' | 'sports' | 'technology' | 'entertainment' | 'politics'>;
+      const categories = multiple.split(',') as Array<'homepage' | 'news' | 'world' | 'business' | 'sports' | 'technology' | 'entertainment' | 'politics' | 'health'>;
       const feeds = await fetchMultipleCountryFeeds(countryCode, categories);
 
       return NextResponse.json(feeds, {

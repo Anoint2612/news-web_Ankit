@@ -415,7 +415,7 @@ export async function fetchRSSFromUrl(url: string): Promise<RSSFeed> {
  */
 export async function fetchCountryFeeds(
   countryCode: CountryCode,
-  category: 'homepage' | 'news' | 'world' | 'business' | 'sports' | 'technology' | 'entertainment' | 'politics'
+  category: 'homepage' | 'news' | 'world' | 'business' | 'sports' | 'technology' | 'entertainment' | 'politics' | 'health'
 ): Promise<NewsArticle[]> {
   let feedUrls: string[] = [];
 
@@ -489,7 +489,7 @@ export async function fetchCountryFeeds(
  */
 export async function fetchMultipleCountryFeeds(
   countryCode: CountryCode,
-  categories: Array<'homepage' | 'news' | 'world' | 'business' | 'sports' | 'technology' | 'entertainment' | 'politics'>
+  categories: Array<'homepage' | 'news' | 'world' | 'business' | 'sports' | 'technology' | 'entertainment' | 'politics' | 'health'>
 ): Promise<Record<string, NewsArticle[]>> {
   const feeds = await Promise.all(
     categories.map(async (category) => ({

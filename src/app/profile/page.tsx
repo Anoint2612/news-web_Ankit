@@ -3,7 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Loader2, Camera, Shield, Save, X } from 'lucide-react';
+import { Loader2, Shield, Save, X } from 'lucide-react';
 import styles from './Profile.module.css';
 
 function getDisplayImageUrl(rawUrl?: string | null) {
@@ -24,7 +24,6 @@ export default function ProfilePage() {
 
     const [isEditing, setIsEditing] = useState(false);
     const [name, setName] = useState('');
-    const [image, setImage] = useState('');
     const [imageLoadError, setImageLoadError] = useState(false);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
@@ -35,7 +34,6 @@ export default function ProfilePage() {
         }
         if (session?.user) {
             setName(session.user.name || '');
-            setImage(session.user.image || '');
             setImageLoadError(false);
         }
     }, [status, router, session]);
@@ -48,7 +46,7 @@ export default function ProfilePage() {
             const res = await fetch('/api/user/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, image }),
+                body: JSON.stringify({ name }),
             });
 
             const data = await res.json();
@@ -56,7 +54,7 @@ export default function ProfilePage() {
             if (!res.ok) throw new Error(data.message || 'Update failed');
 
             // Refresh session data
-            await update({ name: data.user?.name ?? name, image: data.user?.image ?? image });
+            await update({ name: data.user?.name ?? name });
 
             setMessage({ type: 'success', text: 'Profile updated successfully!' });
             setIsEditing(false);
@@ -80,30 +78,14 @@ export default function ProfilePage() {
             <div className={styles.profileCard}>
                 <div className={styles.header}>
                     <div className={styles.avatarLarge}>
-                        {isEditing ? (
-                            <div className={styles.imageEditOverlay}>
-                                <input
-                                    type="text"
-                                    placeholder="Image URL"
-                                    className={styles.urlInput}
-                                    value={image}
-                                    onChange={(e) => {
-                                        setImage(e.target.value);
-                                        setImageLoadError(false);
-                                    }}
-                                />
-                                <Camera size={20} />
-                            </div>
+                        {getDisplayImageUrl(session.user?.image) && !imageLoadError ? (
+                            <img
+                                src={getDisplayImageUrl(session.user?.image)}
+                                alt="Profile"
+                                onError={() => setImageLoadError(true)}
+                            />
                         ) : (
-                            getDisplayImageUrl(session.user?.image) && !imageLoadError ? (
-                                <img
-                                    src={getDisplayImageUrl(session.user?.image)}
-                                    alt="Profile"
-                                    onError={() => setImageLoadError(true)}
-                                />
-                            ) : (
-                                <span>{session.user?.name?.[0] || 'U'}</span>
-                            )
+                            <span>{session.user?.name?.[0] || 'U'}</span>
                         )}
                     </div>
                     {isEditing ? (

@@ -58,14 +58,14 @@ function safeText(text: any): string {
 }
 
 // Map slug to RSS category
-const slugToCategory: Record<string, 'homepage' | 'news' | 'world' | 'business' | 'sports' | 'technology' | 'entertainment' | 'politics'> = {
+const slugToCategory: Record<string, 'homepage' | 'news' | 'world' | 'business' | 'sports' | 'technology' | 'entertainment' | 'politics' | 'health'> = {
   sports: 'sports',
   business: 'business',
   technology: 'technology',
   entertainment: 'entertainment',
   politics: 'politics',
   world: 'world',
-  health: 'news',
+  health: 'health',
   international: 'world',
   environment: 'news',
 };

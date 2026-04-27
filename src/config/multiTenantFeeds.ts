@@ -47,6 +47,7 @@ export const MULTI_TENANT_FEEDS: Record<CountryCode, CountryFeeds> = {
           business: 'https://www.thehindu.com/business/feeder/default.rss',
           sports: 'https://www.thehindu.com/sport/feeder/default.rss',
           technology: 'https://www.thehindu.com/sci-tech/feeder/default.rss',
+          health: 'https://www.thehindu.com/sci-tech/health/feeder/default.rss',
           entertainment: 'https://www.thehindu.com/entertainment/feeder/default.rss',
           politics: 'https://www.thehindu.com/news/national/feeder/default.rss',
         }
@@ -780,7 +781,7 @@ export const ISO_TO_COUNTRY_CODE: Record<string, CountryCode> = {
 };
 
 // Get feed URLs for a specific country and category
-export function getFeedUrlsForCountry(countryCode: CountryCode, category: 'homepage' | 'news' | 'world' | 'business' | 'sports' | 'technology' | 'entertainment' | 'politics'): string[] {
+export function getFeedUrlsForCountry(countryCode: CountryCode, category: 'homepage' | 'news' | 'world' | 'business' | 'sports' | 'technology' | 'entertainment' | 'politics' | 'health'): string[] {
   const countryData = MULTI_TENANT_FEEDS[countryCode];
   if (!countryData) return [];
 
