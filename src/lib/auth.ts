@@ -25,7 +25,9 @@ export const authOptions: NextAuthOptions = {
                 password: { label: "Password", type: "password" }
             },
             async authorize(credentials) {
+                console.log(`[NextAuth] Authorize callback triggered for email: ${credentials?.email}`);
                 if (!credentials?.email || !credentials?.password) {
+                    console.log("[NextAuth] Error: Missing email or password in credentials");
                     throw new Error("Invalid credentials");
                 }
 
@@ -33,20 +35,31 @@ export const authOptions: NextAuthOptions = {
                     where: { email: credentials.email }
                 })
 
-                if (!user || !user.password) {
+                if (!user) {
+                    console.log(`[NextAuth] Error: No user found for email: ${credentials.email}`);
+                    throw new Error("No user found");
+                }
+
+                if (!user.password) {
+                    console.log(`[NextAuth] Error: User has no password set (possibly registered via OAuth)`);
                     throw new Error("No user found");
                 }
 
                 const isPasswordValid = await compare(credentials.password, user.password)
+                console.log(`[NextAuth] Password verification result: ${isPasswordValid}`);
 
                 if (!isPasswordValid) {
+                    console.log("[NextAuth] Error: Password comparison failed");
                     throw new Error("Invalid password");
                 }
 
+                console.log(`[NextAuth] Email verification status: ${user.emailVerified}`);
                 if (!user.emailVerified) {
+                    console.log("[NextAuth] Error: User email is not verified");
                     throw new Error("Email not verified");
                 }
 
+                console.log(`[NextAuth] Authorization successful for: ${user.email} (Role: ${user.role})`);
                 return {
                     id: user.id,
                     email: user.email,
@@ -94,5 +107,6 @@ export const authOptions: NextAuthOptions = {
         error: '/login',
     },
     secret: process.env.NEXTAUTH_SECRET,
-    debug: process.env.NODE_ENV === 'development',
+    debug: true,
 }
+
