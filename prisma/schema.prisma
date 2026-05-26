@@ -8,22 +8,32 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum UserRole {
+  admin
+  user
+}
+
 model User {
-  id              String    @id @default(cuid())
-  email           String    @unique
-  password        String?
-  name            String?
-  image           String?
-  role            String    @default("USER")
-  emailVerified   DateTime?
-  resetOTP        String?
-  resetOTPExpires DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  articles        Article[]
-  comments        Comment[]
-  accounts        Account[]
-  sessions        Session[]
+  id                 String              @id @default(cuid())
+  email              String              @unique
+  password           String?
+  name               String?
+  image              String?
+  role               UserRole            @default(user)
+  emailVerified      DateTime?
+  resetOTP           String?
+  resetOTPExpires    DateTime?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  articles           Article[]
+  comments           Comment[]
+  accounts           Account[]
+  sessions           Session[]
+  articleClicks      ArticleClick[]
+  articleEngagements ArticleEngagement[]
+  sessionRecordings  SessionRecording[]
+  userSessions       UserSession[]
+  heatmapEvents      HeatmapEvent[]
 }
 
 model Account {
@@ -62,28 +72,28 @@ model VerificationToken {
 }
 
 model Category {
-  id        String    @id @default(cuid())
-  name      String    @unique
-  slug      String    @unique
-  articles  Article[]
+  id       String    @id @default(cuid())
+  name     String    @unique
+  slug     String    @unique
+  articles Article[]
 }
 
 model Article {
-  id          String   @id @default(cuid())
-  title       String
-  slug        String   @unique
-  content     String
-  excerpt     String?
-  image       String?
-  featured    Boolean  @default(false)
-  published   Boolean  @default(false)
-  categoryId  String
-  category    Category @relation(fields: [categoryId], references: [id])
-  authorId    String
-  author      User     @relation(fields: [authorId], references: [id])
-  comments    Comment[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String    @id @default(cuid())
+  title      String
+  slug       String    @unique
+  content    String
+  excerpt    String?
+  image      String?
+  featured   Boolean   @default(false)
+  published  Boolean   @default(false)
+  categoryId String
+  category   Category  @relation(fields: [categoryId], references: [id])
+  authorId   String
+  author     User      @relation(fields: [authorId], references: [id])
+  comments   Comment[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 }
 
 model Comment {
@@ -98,9 +108,9 @@ model Comment {
 
 model NewsSource {
   id        String   @id @default(cuid())
-  country   String   // e.g. "INDIA", "UNITED_STATES"
-  name      String   // e.g. "The Hindu"
-  category  String   // e.g. "homepage", "news", "world", etc.
+  country   String
+  name      String
+  category  String
   url       String
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -113,9 +123,9 @@ model Analytics {
   id        String   @id @default(cuid())
   path      String   @unique
   views     Int      @default(0)
-  avgTime   Float    @default(0) // average time spent in seconds
-  totalTime Float    @default(0) // total time spent in seconds
-  sessions  Int      @default(0) // total number of sessions
+  avgTime   Float    @default(0)
+  totalTime Float    @default(0)
+  sessions  Int      @default(0)
   updatedAt DateTime @updatedAt
 }
 
@@ -123,4 +133,78 @@ model Newsletter {
   id        String   @id @default(cuid())
   email     String   @unique
   createdAt DateTime @default(now())
+}
+
+model ArticleClick {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  articleId String
+  category  String
+  title     String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([articleId])
+  @@index([userId])
+  @@index([category])
+  @@index([createdAt])
+}
+
+model ArticleEngagement {
+  id                String   @id @default(cuid())
+  userId            String?
+  user              User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  articleId         String
+  category          String
+  timeSpentSeconds  Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([userId, articleId])
+  @@index([articleId])
+  @@index([category])
+}
+
+model SessionRecording {
+  id              String   @id @default(cuid())
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  cloudinaryUrl   String
+  durationSeconds Int
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+}
+
+model UserSession {
+  id            String         @id @default(cuid())
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startedAt     DateTime       @default(now())
+  endedAt       DateTime?
+  totalDuration Int?
+  aiReport      String?        @db.Text
+  reportedAt    DateTime?
+  heatmapEvents HeatmapEvent[]
+
+  @@index([userId])
+}
+
+model HeatmapEvent {
+  id          String       @id @default(cuid())
+  type        String
+  page        String
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId   String?
+  session     UserSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  x           Float?
+  y           Float?
+  scrollDepth Int?
+  viewport    String       @db.Text
+  timestamp   DateTime
+
+  @@index([page, type])
+  @@index([userId])
+  @@index([timestamp])
 }

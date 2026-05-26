@@ -71,7 +71,7 @@ export default function ProfilePage() {
 
     if (!session) return null;
 
-    const isAdmin = (session.user as any).role === 'ADMIN';
+    const isAdmin = session.user.role === 'admin';
 
     return (
         <div className={styles.profileContainer}>
@@ -117,7 +117,7 @@ export default function ProfilePage() {
                         <label>Role</label>
                         <span className={isAdmin ? styles.adminBadge : ''}>
                             {isAdmin ? <Shield size={14} className="inline mr-1" /> : ''}
-                            {(session.user as any).role || 'User'}
+                            {session.user.role === 'admin' ? 'Admin' : 'User'}
                         </span>
                     </div>
                 </div>

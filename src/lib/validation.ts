@@ -34,3 +34,21 @@ export const adminSourceSchema = z.object({
   url: z.string().url(),
   active: z.boolean().optional().default(true),
 });
+
+export const createAdminSchema = z.object({
+  email: emailSchema,
+  password: strongPasswordSchema,
+  name: z.string().trim().min(1).max(120).optional(),
+});
+
+export const articleClickSchema = z.object({
+  articleId: z.string().trim().min(1).max(256),
+  category: z.string().trim().min(1).max(64),
+  title: z.string().trim().max(512).optional(),
+});
+
+export const articleEngagementSchema = z.object({
+  articleId: z.string().trim().min(1).max(256),
+  category: z.string().trim().min(1).max(64),
+  durationSeconds: z.number().int().min(1).max(86400),
+});

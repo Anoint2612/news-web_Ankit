@@ -25,7 +25,7 @@ const MENU_ITEMS = [
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     const { data: session } = useSession();
-    const isAdmin = (session?.user as any)?.role === 'ADMIN';
+    const isAdmin = session?.user?.role === 'admin';
 
     return (
         <>

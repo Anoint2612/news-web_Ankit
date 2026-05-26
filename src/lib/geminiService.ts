@@ -22,9 +22,6 @@ const GEMINI_MODELS = [
   'gemini-pro'
 ];
 
-/**
- * Rephrase news article using Gemini API
- */
 export async function rephraseArticle(
   title: string,
   content: string,
@@ -163,4 +160,73 @@ export async function expandNewsSnippet(
   }
 
   return snippet ? `<p>${snippet}</p>` : '';
+}
+
+export async function analyzeUserSessionLogs(events: any[]): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("AI Analysis unavailable (No API Key configured on server).");
+  }
+
+  if (!events || events.length === 0) {
+    throw new Error("Insufficient data to generate a behavioral report for this session.");
+  }
+
+  // Pre-process events safely to avoid sending a massive prompt payload or throwing on invalid dates
+  const simplifiedEvents = events.map(e => {
+    let timeStr = 'Unknown';
+    try {
+      if (e.timestamp) {
+        const d = new Date(e.timestamp);
+        if (!isNaN(d.getTime())) {
+          timeStr = d.toLocaleTimeString();
+        }
+      }
+    } catch (err) { }
+    return {
+      time: timeStr,
+      type: e.type,
+      page: e.page,
+      x: e.x,
+      y: e.y,
+      depth: e.scrollDepth !== null ? e.scrollDepth : undefined,
+    };
+  });
+
+  const prompt = `
+    You are an expert UX researcher and behavioral analyst.
+    Below is a sequence of interactions (clicks, scrolls, and mouse movements) from a single user session on a news website.
+    
+    Session Data:
+    ${JSON.stringify(simplifiedEvents, null, 2)}
+    
+    Task:
+    Analyze these logs and write a concise, professional behavioral report (max 3-4 paragraphs) formatted in Markdown.
+    
+    Look for:
+    - What pages did they visit?
+    - Did they read deeply (scroll depth > 50%) or just skim?
+    - Was there any erratic clicking or signs of hesitation?
+    - What seemed to be their primary intent?
+    
+    Return ONLY the Markdown report. Do not include introductory text like "Here is the analysis".
+  `;
+
+  let lastError: any = null;
+  for (const modelName of GEMINI_MODELS) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      const content = text ? text.trim() : "";
+      if (content.length > 50) {
+        return content;
+      }
+    } catch (error: any) {
+      lastError = error;
+      console.error(`Model ${modelName} analysis failed:`, error);
+    }
+  }
+
+  throw new Error(lastError?.message || "Failed to analyze session logs. The AI agent encountered an error.");
 }

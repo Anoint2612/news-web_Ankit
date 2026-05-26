@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://news-web-backend.onrender.com/api/:path*"
+    }
+  ]
+}

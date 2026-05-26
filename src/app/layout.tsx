@@ -6,6 +6,10 @@ import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import ClientLayout from "@/components/ClientLayout";
 import AnalyticsTracker from "@/components/AnalyticsTracker";
+import { CookieConsentProvider } from "@/components/CookieConsentContext";
+import CookieConsent from "@/components/CookieConsent";
+import TrackingProvider from "@/components/TrackingProvider";
+import { Suspense } from "react";
 
 const fraunces = Fraunces({
   variable: "--font-fraunces",
@@ -39,10 +43,16 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${fraunces.variable} ${ibmPlexMono.variable} ${ibmPlexSans.variable}`}>
         <Providers>
-          <ClientLayout>
-            <AnalyticsTracker />
-            {children}
-          </ClientLayout>
+          <CookieConsentProvider>
+            <ClientLayout>
+              <AnalyticsTracker />
+              {children}
+            </ClientLayout>
+            <Suspense fallback={null}>
+              <TrackingProvider />
+            </Suspense>
+            <CookieConsent />
+          </CookieConsentProvider>
         </Providers>
       </body>
     </html>

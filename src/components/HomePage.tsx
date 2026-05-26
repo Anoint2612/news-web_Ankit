@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import styles from '@/app/page.module.css';
 import Link from 'next/link';
 import { getArticleUrl } from '@/lib/articleUtils';
@@ -114,6 +114,22 @@ export default function HomePage() {
   const worldFeatured = world[0] || all[16];
   const worldSidebar = all.slice(17, 21);
 
+  /**
+   * Helper: determine the correct page-level category for a HomePage article.
+   * Since articles from different feeds are mixed in `all`, we check which
+   * feed array the article was originally from to provide the correct category.
+   */
+  function getPageCategory(art: NewsArticle): string {
+    if (news.includes(art)) return 'news';
+    if (business.includes(art)) return 'business';
+    if (tech.includes(art)) return 'technology';
+    if (world.includes(art)) return 'world';
+    if (health.includes(art)) return 'health';
+    if (sports.includes(art)) return 'sports';
+    if (environment.includes(art)) return 'news';
+    return undefined as any; // let getArticleUrl use normalizeCategory fallback
+  }
+
   return (
     <div className={styles.page}>
       <main className={styles.content}>
@@ -121,7 +137,7 @@ export default function HomePage() {
         <section className={styles.heroSection}>
           <div className={styles.heroMain}>
             <div className={styles.heroMainArticle} style={{ position: 'relative' }}>
-              <Link href={heroArticle ? getArticleUrl(heroArticle) : '#'} className={styles.heroLink}>
+              <Link href={heroArticle ? getArticleUrl(heroArticle, 'news') : '#'} className={styles.heroLink}>
                 <div className={styles.heroMainImageWrapper}>
                   <img src={getImageUrl(heroArticle?.image, FALLBACK_IMAGE)} alt="" className={styles.heroMainImage} />
                 </div>
@@ -131,14 +147,14 @@ export default function HomePage() {
                 <span className={styles.meta}>{formatDate(heroArticle?.pubDate)} • By Editorial Team</span>
               </Link>
               <div style={{ position: 'absolute', top: '20px', right: '20px' }}>
-                <CopyButton url={heroArticle ? (typeof window !== 'undefined' ? window.location.origin + getArticleUrl(heroArticle) : getArticleUrl(heroArticle)) : ''} />
+                <CopyButton url={heroArticle ? (typeof window !== 'undefined' ? window.location.origin + getArticleUrl(heroArticle, 'news') : getArticleUrl(heroArticle, 'news')) : ''} />
               </div>
             </div>
           </div>
           <div className={styles.heroSidebar}>
             {sidebarHero.map((art, i) => (
               <div key={i} className={styles.sidebarItemContainer}>
-                <Link href={art ? getArticleUrl(art) : '#'} className={styles.sidebarItem}>
+                <Link href={art ? getArticleUrl(art, getPageCategory(art)) : '#'} className={styles.sidebarItem}>
                   <div className={styles.sidebarImageWrapper}>
                     <img src={getImageUrl(art?.image, FALLBACK_IMAGE)} alt="" className={styles.sidebarImage} />
                   </div>
@@ -148,7 +164,7 @@ export default function HomePage() {
                   </div>
                 </Link>
                 <div className={styles.itemCopyBtn}>
-                  <CopyButton size={14} url={art ? (typeof window !== 'undefined' ? window.location.origin + getArticleUrl(art) : getArticleUrl(art)) : ''} />
+                  <CopyButton size={14} url={art ? (typeof window !== 'undefined' ? window.location.origin + getArticleUrl(art, getPageCategory(art)) : getArticleUrl(art, getPageCategory(art))) : ''} />
                 </div>
               </div>
             ))}
@@ -163,7 +179,7 @@ export default function HomePage() {
           </div>
           <div className={styles.latestNewsGrid}>
             <div style={{ position: 'relative' }}>
-              <Link href={latestMain ? getArticleUrl(latestMain) : '#'} className={styles.latestLargeCard}>
+              <Link href={latestMain ? getArticleUrl(latestMain, 'business') : '#'} className={styles.latestLargeCard}>
                 <div className={styles.latestLargeImageWrapper}>
                   <img src={getImageUrl(latestMain?.image, FALLBACK_IMAGE)} alt="" className={styles.latestLargeImage} />
                 </div>
@@ -171,13 +187,13 @@ export default function HomePage() {
                 <h3 className={styles.latestLargeTitle}>{safeText(latestMain?.title)}</h3>
               </Link>
               <div style={{ position: 'absolute', top: '10px', right: '10px' }}>
-                <CopyButton url={latestMain ? (typeof window !== 'undefined' ? window.location.origin + getArticleUrl(latestMain) : getArticleUrl(latestMain)) : ''} />
+                <CopyButton url={latestMain ? (typeof window !== 'undefined' ? window.location.origin + getArticleUrl(latestMain, 'business') : getArticleUrl(latestMain, 'business')) : ''} />
               </div>
             </div>
             <div className={styles.latestSmallGrid}>
               {latestGrid.map((art, i) => (
                 <div key={i} style={{ position: 'relative' }}>
-                  <Link href={art ? getArticleUrl(art) : '#'} className={styles.latestSmallCard}>
+                  <Link href={art ? getArticleUrl(art, getPageCategory(art)) : '#'} className={styles.latestSmallCard}>
                     <div className={styles.latestSmallImageWrapper}>
                       <img src={getImageUrl(art?.image, FALLBACK_IMAGE)} alt="" className={styles.latestSmallImage} />
                     </div>
@@ -185,7 +201,7 @@ export default function HomePage() {
                     <span className={styles.meta}>{formatDate(art?.pubDate)}</span>
                   </Link>
                   <div style={{ position: 'absolute', top: '5px', right: '5px' }}>
-                    <CopyButton size={12} url={art ? (typeof window !== 'undefined' ? window.location.origin + getArticleUrl(art) : getArticleUrl(art)) : ''} />
+                    <CopyButton size={12} url={art ? (typeof window !== 'undefined' ? window.location.origin + getArticleUrl(art, getPageCategory(art)) : getArticleUrl(art, getPageCategory(art))) : ''} />
                   </div>
                 </div>
               ))}
@@ -202,7 +218,7 @@ export default function HomePage() {
           <div className={styles.secondaryStoriesGrid}>
             {secondaryStories.map((art, i) => (
               <div key={i} style={{ position: 'relative' }}>
-                <Link href={art ? getArticleUrl(art) : '#'} className={styles.secondaryCard}>
+                <Link href={art ? getArticleUrl(art, getPageCategory(art)) : '#'} className={styles.secondaryCard}>
                   <img src={getImageUrl(art?.image, FALLBACK_IMAGE)} alt="" className={styles.secondaryImage} />
                   <div className={styles.secondaryOverlay}>
                     <span className={styles.category} style={{ color: '#fff' }}>{safeText(art?.category) || 'FEATURED'}</span>
@@ -211,7 +227,7 @@ export default function HomePage() {
                   </div>
                 </Link>
                 <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10 }}>
-                  <CopyButton url={art ? (typeof window !== 'undefined' ? window.location.origin + getArticleUrl(art) : getArticleUrl(art)) : ''} />
+                  <CopyButton url={art ? (typeof window !== 'undefined' ? window.location.origin + getArticleUrl(art, getPageCategory(art)) : getArticleUrl(art, getPageCategory(art))) : ''} />
                 </div>
               </div>
             ))}
@@ -230,7 +246,7 @@ export default function HomePage() {
                   <span className={styles.meta}>{formatDate(art?.pubDate)} • {safeText(art?.category) || 'TRENDING'}</span>
                   <h3 className={styles.mostReadTitle}>{safeText(art?.title)}</h3>
                   <p className={styles.heroMainDescription} style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>{safeText(art?.description)}</p>
-                  <Link href={art ? getArticleUrl(art) : '#'} className={styles.readMoreBtn}>Read More</Link>
+                  <Link href={art ? getArticleUrl(art, getPageCategory(art)) : '#'} className={styles.readMoreBtn}>Read More</Link>
                 </div>
                 <div className={styles.mostReadImageWrapper}>
                   <img src={getImageUrl(art.image, FALLBACK_IMAGE)} alt="" className={styles.mostReadImage} />
@@ -248,7 +264,7 @@ export default function HomePage() {
           <div className={styles.worldNewsGrid}>
             <div className={styles.worldSidebar}>
               {worldSidebar.map((art, i) => (
-                <Link key={i} href={art ? getArticleUrl(art) : '#'} className={styles.sidebarItem}>
+                <Link key={i} href={art ? getArticleUrl(art, 'world') : '#'} className={styles.sidebarItem}>
                   <div className={styles.sidebarImageWrapper}>
                     <img src={getImageUrl(art?.image, FALLBACK_IMAGE)} alt="" className={styles.sidebarImage} />
                   </div>
@@ -260,7 +276,7 @@ export default function HomePage() {
               ))}
             </div>
             <div style={{ position: 'relative' }}>
-              <Link href={worldFeatured ? getArticleUrl(worldFeatured) : '#'} className={styles.worldFeatured}>
+              <Link href={worldFeatured ? getArticleUrl(worldFeatured, 'world') : '#'} className={styles.worldFeatured}>
                 <div className={styles.worldFeaturedImageWrapper}>
                   <img src={getImageUrl(worldFeatured?.image, FALLBACK_IMAGE)} alt="" className={styles.worldFeaturedImage} />
                 </div>
@@ -273,7 +289,7 @@ export default function HomePage() {
                 </div>
               </Link>
               <div style={{ position: 'absolute', top: '20px', right: '20px' }}>
-                <CopyButton url={worldFeatured ? (typeof window !== 'undefined' ? window.location.origin + getArticleUrl(worldFeatured) : getArticleUrl(worldFeatured)) : ''} />
+                <CopyButton url={worldFeatured ? (typeof window !== 'undefined' ? window.location.origin + getArticleUrl(worldFeatured, 'world') : getArticleUrl(worldFeatured, 'world')) : ''} />
               </div>
             </div>
           </div>

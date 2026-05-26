@@ -2,18 +2,16 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { UserRole } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { adminSourceSchema } from '@/lib/validation';
 import { getClientIp, isRateLimited } from '@/lib/rateLimit';
+import { authorizeRoles, isAuthorized } from '@/lib/rbac';
 
 export async function GET() {
     try {
-        const session = await getServerSession(authOptions);
-        if (!session || (session.user as any).role !== 'ADMIN') {
-            return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-        }
+        const auth = await authorizeRoles(UserRole.admin);
+        if (!isAuthorized(auth)) return auth;
 
         const sources = await prisma.newsSource.findMany({
             orderBy: [{ country: 'asc' }, { category: 'asc' }]
@@ -50,10 +48,8 @@ export async function GET() {
 
 export async function POST(req: Request) {
     try {
-        const session = await getServerSession(authOptions);
-        if (!session || (session.user as any).role !== 'ADMIN') {
-            return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-        }
+        const auth = await authorizeRoles(UserRole.admin);
+        if (!isAuthorized(auth)) return auth;
 
         const ip = getClientIp(req);
         const rate = isRateLimited(`admin-sources-post:${ip}`, 20, 10 * 60 * 1000);
@@ -89,10 +85,8 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
     try {
-        const session = await getServerSession(authOptions);
-        if (!session || (session.user as any).role !== 'ADMIN') {
-            return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-        }
+        const auth = await authorizeRoles(UserRole.admin);
+        if (!isAuthorized(auth)) return auth;
 
         const ip = getClientIp(req);
         const rate = isRateLimited(`admin-sources-delete:${ip}`, 20, 10 * 60 * 1000);

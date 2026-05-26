@@ -175,7 +175,7 @@ export default function CategoryPage({ slug }: CategoryPageProps) {
         <div className={styles.featuredGrid}>
           <div style={{ position: 'relative' }}>
             <Link
-              href={getArticleUrl(mainArticle)}
+              href={getArticleUrl(mainArticle, category)}
               className={styles.featuredMain}
               style={{ textDecoration: 'none', color: 'inherit' }}
             >
@@ -197,7 +197,7 @@ export default function CategoryPage({ slug }: CategoryPageProps) {
               </div>
             </Link>
             <div style={{ position: 'absolute', top: '20px', right: '20px' }}>
-              <CopyButton url={typeof window !== 'undefined' ? window.location.origin + getArticleUrl(mainArticle) : getArticleUrl(mainArticle)} />
+              <CopyButton url={typeof window !== 'undefined' ? window.location.origin + getArticleUrl(mainArticle, category) : getArticleUrl(mainArticle, category)} />
             </div>
           </div>
 
@@ -208,7 +208,7 @@ export default function CategoryPage({ slug }: CategoryPageProps) {
                 {trending.map((article: NewsArticle, i: number) => (
                   <div key={i} style={{ position: 'relative' }}>
                     <Link
-                      href={getArticleUrl(article)}
+                      href={getArticleUrl(article, category)}
                       className={styles.trendingItem}
                       style={{ textDecoration: 'none', color: 'inherit' }}
                     >
@@ -216,7 +216,7 @@ export default function CategoryPage({ slug }: CategoryPageProps) {
                       <h4 className={styles.trendingTitle}>{safeText(article.title)}</h4>
                     </Link>
                     <div style={{ position: 'absolute', top: '5px', right: '0' }}>
-                      <CopyButton size={12} url={typeof window !== 'undefined' ? window.location.origin + getArticleUrl(article) : getArticleUrl(article)} />
+                      <CopyButton size={12} url={typeof window !== 'undefined' ? window.location.origin + getArticleUrl(article, category) : getArticleUrl(article, category)} />
                     </div>
                   </div>
                 ))}
@@ -231,7 +231,7 @@ export default function CategoryPage({ slug }: CategoryPageProps) {
           {gridArticles.map((article: NewsArticle, i: number) => (
             <div key={i} style={{ position: 'relative' }}>
               <Link
-                href={getArticleUrl(article)}
+                href={getArticleUrl(article, category)}
                 className={styles.gridItem}
                 style={{ textDecoration: 'none', color: 'inherit' }}
               >
@@ -251,7 +251,7 @@ export default function CategoryPage({ slug }: CategoryPageProps) {
                 <p className={styles.gridExcerpt}>{safeText(article.description)}</p>
               </Link>
               <div style={{ position: 'absolute', bottom: '15px', right: '0' }}>
-                <CopyButton size={14} url={typeof window !== 'undefined' ? window.location.origin + getArticleUrl(article) : getArticleUrl(article)} />
+                <CopyButton size={14} url={typeof window !== 'undefined' ? window.location.origin + getArticleUrl(article, category) : getArticleUrl(article, category)} />
               </div>
             </div>
           ))}

@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma"
 import GoogleProvider from "next-auth/providers/google"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { compare } from "bcryptjs"
+import { UserRole } from "@prisma/client"
+import { ROLE_USER } from "@/lib/roles"
 
 export const authOptions: NextAuthOptions = {
     adapter: PrismaAdapter(prisma),
@@ -41,7 +43,6 @@ export const authOptions: NextAuthOptions = {
                     throw new Error("Invalid password");
                 }
 
-                // Check if email is verified
                 if (!user.emailVerified) {
                     throw new Error("Email not verified");
                 }
@@ -59,9 +60,8 @@ export const authOptions: NextAuthOptions = {
     callbacks: {
         async session({ session, token }) {
             if (token && session.user) {
-                const sessionUser = session.user as typeof session.user & { id?: string; role?: string };
-                sessionUser.id = token.id as string;
-                sessionUser.role = token.role as string;
+                session.user.id = token.id;
+                session.user.role = (token.role as UserRole) ?? ROLE_USER;
                 session.user.name = (token.name as string) || session.user.name;
                 session.user.image = (token.image as string) || session.user.image;
                 session.user.email = (token.email as string) || session.user.email;
@@ -70,8 +70,12 @@ export const authOptions: NextAuthOptions = {
         },
         async jwt({ token, user, trigger, session }) {
             if (user) {
+                const dbUser = await prisma.user.findUnique({
+                    where: { id: user.id },
+                    select: { role: true },
+                });
                 token.id = user.id;
-                token.role = (user as any).role || "USER";
+                token.role = dbUser?.role ?? ROLE_USER;
                 token.name = user.name;
                 token.image = user.image;
                 token.email = user.email;
@@ -92,4 +96,3 @@ export const authOptions: NextAuthOptions = {
     secret: process.env.NEXTAUTH_SECRET,
     debug: process.env.NODE_ENV === 'development',
 }
-

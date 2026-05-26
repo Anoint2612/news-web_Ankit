@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { sendOTPEmail } from '@/lib/mail';
 import { signupSchema } from '@/lib/validation';
 import { getClientIp, isRateLimited } from '@/lib/rateLimit';
+import { UserRole } from '@prisma/client';
 
 export async function POST(req: Request) {
     try {
@@ -45,6 +46,7 @@ export async function POST(req: Request) {
                     password: hashedPassword,
                     resetOTP: otp,
                     resetOTPExpires: otpExpires,
+                    role: UserRole.user,
                 },
             });
 
@@ -59,6 +61,7 @@ export async function POST(req: Request) {
                 password: hashedPassword,
                 resetOTP: otp,
                 resetOTPExpires: otpExpires,
+                role: UserRole.user,
             },
         });
 

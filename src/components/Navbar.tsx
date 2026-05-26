@@ -12,7 +12,7 @@ export default function Navbar() {
     const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [isDropdownOpen, setDropdownOpen] = useState(false);
     const { data: session } = useSession();
-    const isAdmin = (session?.user as any)?.role === 'ADMIN';
+    const isAdmin = session?.user?.role === 'admin';
 
     // Close dropdown when clicking outside
     useEffect(() => {
